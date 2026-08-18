@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Konverter Soal PDF ke Templat Word (.docx)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- PDF.js untuk ekstraksi PDF & Rendering Canvas di Browser -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Docx.js untuk Generate File .docx -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.2.2/build/index.umd.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans antialiased pb-12">
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-blue-700 via-indigo-700 to-indigo-800 text-white shadow-md border-b border-indigo-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="p-3 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
+          <i class="fa-solid fa-file-word text-2xl text-blue-200"></i>
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-bold tracking-tight">Konverter Soal PDF ke Templat Word</h1>
+          <p class="text-xs md:text-sm text-indigo-100 opacity-90">Format Standar Ujian (PG, PG Kompleks, Menjodohkan, Isian, Essai)</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2 text-xs">
+        <span class="bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Format Templat H1_6 Siap
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+
+    <!-- Grid Input & Controls -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Panel: File Upload & Input -->
+      <div class="lg:col-span-5 space-y-5">
+        
+        <!-- Card Upload -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 transition-all">
+          <h2 class="text-base font-semibold text-slate-800 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up text-blue-600"></i>
+            1. Unggah PDF / Gambar atau Tempel Teks Soal
+          </h2>
+
+          <!-- Drop Area -->
+          <div id="drop-zone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 hover:bg-blue-50/50 rounded-xl p-6 text-center transition cursor-pointer relative">
+            <input type="file" id="file-input" accept=".pdf,.txt,.doc,.docx,image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            <div id="upload-prompt" class="space-y-2 pointer-events-none">
+              <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-file-pdf"></i>
+              </div>
+              <p class="text-sm font-medium text-slate-700">Tarik & Lepas file PDF / Gambar Soal di sini</p>
+              <p class="text-xs text-slate-500">Mendukung PDF Multi-halaman, Gambar (JPG/PNG), atau File Teks</p>
+            </div>
+            <!-- Uploading / Processing state inside zone -->
+            <div id="file-info" class="hidden text-left bg-blue-50 p-3 rounded-lg border border-blue-200 flex items-center justify-between">
+              <div class="flex items-center space-x-3 overflow-hidden">
+                <i id="file-type-icon" class="fa-solid fa-file-code text-blue-600 text-lg flex-shrink-0"></i>
+                <div class="truncate">
+                  <p id="file-name" class="text-xs font-semibold text-slate-800 truncate"></p>
+                  <p id="file-size" class="text-[10px] text-slate-500"></p>
+                </div>
+              </div>
+              <button id="btn-remove-file" class="text-xs text-rose-600 hover:bg-rose-100 p-1 rounded transition">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="my-3 flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">atau tempel teks di bawah</span>
+            <button id="btn-sample" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+              <i class="fa-solid fa-lightbulb text-amber-500 mr-1"></i> Gunakan Contoh Soal
+            </button>
+          </div>
+
+          <!-- Textarea Input -->
+          <div>
+            <textarea id="raw-text-input" rows="8" placeholder="Contoh teks soal:&#10;1. Siapakah presiden pertama Indonesia?&#10;A. Soekarno&#10;B. Soeharto&#10;Jawaban: A&#10;&#10;2. Peralatan dapur di bawah ini... [dst]" class="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono text-slate-700 resize-y"></textarea>
+          </div>
+
+          <!-- Convert Button -->
+          <button id="btn-convert" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span id="btn-convert-text">Konversi & Proses SEMUA Soal (AI)</span>
+          </button>
+        </div>
+
+        <!-- Info Card -->
+        <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-xs text-indigo-900 space-y-2">
+          <p class="font-bold flex items-center gap-1.5 text-indigo-950">
+            <i class="fa-solid fa-circle-info text-indigo-600"></i> Petunjuk Sistem Konversi
+          </p>
+          <ul class="list-disc list-inside space-y-1 text-indigo-800 leading-relaxed">
+            <li>Sistem akan mengelompokkan **seluruh soal tanpa terkecuali** ke Jenis 1 - 5.</li>
+            <li><strong>Jenis 1:</strong> PG Sederhana (1 Kunci Jawaban <code class="bg-indigo-100 px-1 rounded">v</code>).</li>
+            <li><strong>Jenis 2:</strong> PG Kompleks (Bisa &gt;1 Kunci Jawaban <code class="bg-indigo-100 px-1 rounded">v</code>).</li>
+            <li><strong>Jenis 3:</strong> Menjodohkan (Baris vs Kolom & Pasangan Kunci).</li>
+            <li><strong>Jenis 4 & 5:</strong> Isian Singkat & Essai/Uraian.</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Right Panel: Preview & Editor -->
+      <div class="lg:col-span-7 space-y-5">
+        
+        <!-- Results Header Bar -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <h2 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-table-list text-indigo-600"></i>
+                2. Preview & Editor Soal Terformat
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Total Soal Terdeteksi: <span id="stat-total" class="font-bold text-slate-800">0</span> soal</p>
+            </div>
+
+            <!-- Export Buttons -->
+            <div class="flex items-center gap-2">
+              <button id="btn-export-docx" disabled class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-file-word"></i>
+                <span>Unduh Word (.docx)</span>
+              </button>
+              <button id="btn-export-csv" disabled class="bg-slate-700 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-file-csv"></i>
+                <span>Unduh CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading Indicator -->
+          <div id="loading-state" class="hidden py-12 text-center space-y-3">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent"></div>
+            <p id="loading-msg" class="text-sm font-medium text-slate-700">Menganalisis dan Memformat Seluruh Soal...</p>
+            <p class="text-xs text-slate-400">Sedang menyusun ke struktur tabel Jenis 1 - 5 tanpa terlewat</p>
+          </div>
+
+          <!-- Empty State -->
+          <div id="empty-state" class="py-12 text-center space-y-3">
+            <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto text-2xl">
+              <i class="fa-solid fa-list-check"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-600">Belum Ada Soal Terproses</p>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto">Unggah file PDF / Gambar atau masukkan teks soal lalu klik tombol <strong>"Konversi & Proses SEMUA Soal"</strong> di sebelah kiri.</p>
+          </div>
+
+          <!-- Tabs for Question Types -->
+          <div id="editor-container" class="hidden mt-4">
+            <div class="flex border-b border-slate-200 overflow-x-auto no-scrollbar gap-1 text-xs font-medium">
+              <button class="tab-btn active px-3 py-2 border-b-2 border-blue-600 text-blue-600 font-semibold whitespace-nowrap" data-tab="tab-pg1">
+                PG (Jenis 1) <span id="count-pg1" class="ml-1 bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full text-[10px]">0</span>
+              </button>
+              <button class="tab-btn px-3 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-pg2">
+                PG Kompleks (Jenis 2) <span id="count-pg2" class="ml-1 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px]">0</span>
+              </button>
+              <button class="tab-btn px-3 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-jodoh">
+                Menjodohkan (Jenis 3) <span id="count-jodoh" class="ml-1 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px]">0</span>
+              </button>
+              <button class="tab-btn px-3 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-isian">
+                Isian (Jenis 4) <span id="count-isian" class="ml-1 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px]">0</span>
+              </button>
+              <button class="tab-btn px-3 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-urai">
+                Uraian (Jenis 5) <span id="count-urai" class="ml-1 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px]">0</span>
+              </button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="mt-4">
+              
+              <!-- TAB 1: PG 1 -->
+              <div id="tab-pg1" class="tab-content space-y-4">
+                <div class="flex justify-between items-center text-xs text-slate-500">
+                  <span>I. Soal Pilihan Ganda (Satu Kunci Jawaban Benar)</span>
+                  <button onclick="addNewQuestion(1)" class="text-blue-600 hover:text-blue-800 font-medium">+ Tambah Soal PG</button>
+                </div>
+                <div id="list-pg1" class="space-y-4 max-h-[500px] overflow-y-auto pr-1"></div>
+              </div>
+
+              <!-- TAB 2: PG 2 (Kompleks) -->
+              <div id="tab-pg2" class="tab-content hidden space-y-4">
+                <div class="flex justify-between items-center text-xs text-slate-500">
+                  <span>II. Soal Pilihan Ganda Kompleks (Bisa Lebih dari 1 Kunci)</span>
+                  <button onclick="addNewQuestion(2)" class="text-blue-600 hover:text-blue-800 font-medium">+ Tambah PG Kompleks</button>
+                </div>
+                <div id="list-pg2" class="space-y-4 max-h-[500px] overflow-y-auto pr-1"></div>
+              </div>
+
+              <!-- TAB 3: Menjodohkan -->
+              <div id="tab-jodoh" class="tab-content hidden space-y-4">
+                <div class="flex justify-between items-center text-xs text-slate-500">
+                  <span>III. Soal Menjodohkan (Tabel Baris & Kolom)</span>
+                  <button onclick="addNewQuestion(3)" class="text-blue-600 hover:text-blue-800 font-medium">+ Tambah Menjodohkan</button>
+                </div>
+                <div id="list-jodoh" class="space-y-4 max-h-[500px] overflow-y-auto pr-1"></div>
+              </div>
+
+              <!-- TAB 4: Isian Singkat -->
+              <div id="tab-isian" class="tab-content hidden space-y-4">
+                <div class="flex justify-between items-center text-xs text-slate-500">
+                  <span>IV. Soal Isian Singkat</span>
+                  <button onclick="addNewQuestion(4)" class="text-blue-600 hover:text-blue-800 font-medium">+ Tambah Isian</button>
+                </div>
+                <div id="list-isian" class="space-y-4 max-h-[500px] overflow-y-auto pr-1"></div>
+              </div>
+
+              <!-- TAB 5: Uraian -->
+              <div id="tab-urai" class="tab-content hidden space-y-4">
+                <div class="flex justify-between items-center text-xs text-slate-500">
+                  <span>V. Soal Uraian / Essai</span>
+                  <button onclick="addNewQuestion(5)" class="text-blue-600 hover:text-blue-800 font-medium">+ Tambah Uraian</button>
+                </div>
+                <div id="list-urai" class="space-y-4 max-h-[500px] overflow-y-auto pr-1"></div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-xs z-50">
+    <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+    <span id="toast-msg">Pesan notifikasi</span>
+  </div>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    // Global State
+    let parsedQuestions = [];
+    let uploadedFileDataList = []; // Support multi-page scanned PDF images
+    const apiKey = ""; // Diset secara otomatis oleh runtime environment
+
+    // Element References
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const rawTextInput = document.getElementById('raw-text-input');
+    const btnConvert = document.getElementById('btn-convert');
+    const btnSample = document.getElementById('btn-sample');
+    const btnExportDocx = document.getElementById('btn-export-docx');
+    const btnExportCsv = document.getElementById('btn-export-csv');
+    const loadingState = document.getElementById('loading-state');
+    const loadingMsg = document.getElementById('loading-msg');
+    const emptyState = document.getElementById('empty-state');
+    const editorContainer = document.getElementById('editor-container');
+
+    // Drag & Drop Handlers
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-blue-500', 'bg-blue-50');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect();
+      }
+    });
+
+    fileInput.addEventListener('change', handleFileSelect);
+
+    async function handleFileSelect() {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      document.getElementById('upload-prompt').classList.add('hidden');
+      document.getElementById('file-info').classList.remove('hidden');
+      document.getElementById('file-name').textContent = file.name;
+      document.getElementById('file-size').textContent = (file.size / 1024).toFixed(1) + ' KB';
+
+      const typeIcon = document.getElementById('file-type-icon');
+      uploadedFileDataList = [];
+
+      if (file.type.startsWith('image/')) {
+        typeIcon.className = 'fa-solid fa-file-image text-emerald-600 text-lg flex-shrink-0';
+        showToast('Membaca file gambar...', 'info');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          uploadedFileDataList.push({
+            mimeType: file.type,
+            base64: e.target.result.split(',')[1]
+          });
+          showToast('Gambar berhasil dimuat! Siap dikonversi.', 'success');
+        };
+        reader.readAsDataURL(file);
+      } 
+      else if (file.type === 'application/pdf') {
+        typeIcon.className = 'fa-solid fa-file-pdf text-rose-600 text-lg flex-shrink-0';
+        showToast('Membaca seluruh halaman file PDF...', 'info');
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let fullText = '';
+          
+          // Extrak Teks PDF dengan Pengurutan Baris Koordinat Y
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            
+            // Urutkan item teks berdasarkan koordinat Y (dari atas ke bawah) & X
+            let lastY = null;
+            let pageText = '';
+            for (const item of content.items) {
+              if (!item.str) continue;
+              const currentY = Math.round(item.transform[5]);
+              if (lastY !== null && Math.abs(currentY - lastY) > 5) {
+                pageText += '\n';
+              } else if (pageText.length > 0 && !pageText.endsWith('\n') && !pageText.endsWith(' ')) {
+                pageText += ' ';
+              }
+              pageText += item.str;
+              lastY = currentY;
+            }
+            fullText += `\n--- HALAMAN ${i} ---\n` + pageText + '\n';
+          }
+
+          // Jika PDF memiliki teks asli yang cukup panjang
+          if (fullText.trim().replace(/--- HALAMAN \d+ ---/g, '').length > 50) {
+            rawTextInput.value = fullText.trim();
+            showToast(`Teks dari ${pdf.numPages} halaman PDF berhasil diekstrak!`, 'success');
+          } else {
+            // PDF berbentuk Scan -> Rendering SELURUH Halaman ke Gambar Canvas
+            showToast(`PDF berupa Scan. Mengonversi ${pdf.numPages} halaman ke Gambar (OCR AI)...`, 'info');
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const viewport = page.getViewport({ scale: 1.5 });
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d');
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+
+              await page.render({ canvasContext: context, viewport: viewport }).promise;
+              const imgData = canvas.toDataURL('image/jpeg', 0.85);
+              uploadedFileDataList.push({
+                mimeType: 'image/jpeg',
+                base64: imgData.split(',')[1]
+              });
+            }
+            showToast(`Semua (${pdf.numPages}) halaman PDF Scan siap diproses OCR AI!`, 'success');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Gagal membaca PDF. Silakan tempel teks secara manual.', 'error');
+        }
+      } else if (file.type.startsWith('text/')) {
+        const text = await file.text();
+        rawTextInput.value = text;
+      }
+    }
+
+    document.getElementById('btn-remove-file').addEventListener('click', (e) => {
+      e.stopPropagation();
+      fileInput.value = '';
+      uploadedFileDataList = [];
+      document.getElementById('upload-prompt').classList.remove('hidden');
+      document.getElementById('file-info').classList.add('hidden');
+    });
+
+    // Load Sample Questions
+    btnSample.addEventListener('click', () => {
+      rawTextInput.value = `I. Soal Pilihan Ganda (PG 1)
+1. Siapakah Presiden Indonesia pada tahun 1999?
+A. Soekarno
+B. Soeharto
+C. B. J. Habibie (Kunci)
+D. Abdurrahman Wahid
+E. Megawati
+
+2. Teknik dasar memegang raket dalam permainan bulu tangkis yang mirip seperti berjabat tangan adalah...
+A. Backhand grip
+B. Forehand grip (Kunci)
+C. American grip
+D. Combination grip
+
+II. Soal Pilihan Ganda Kompleks (PG 2)
+1. Manakah di antara peralatan berikut yang termasuk peralatan dapur?
+A. Cangkul
+B. Pisau (Kunci)
+C. Obeng
+D. Spatula (Kunci)
+E. Panci (Kunci)
+
+III. Soal Menjodohkan
+1. Cocokkanlah nama negara di bawah ini dengan Ibukotanya:
+Baris:
+1. Indonesia
+2. Jepang
+3. Korea Selatan
+
+Kolom:
+A. Tokyo
+B. Jakarta
+C. Seoul
+
+Kunci: 1-B, 2-A, 3-C
+
+IV. Soal Isian Singkat
+1. Ibu kota negara Indonesia saat ini adalah...
+Jawaban: Jakarta
+
+V. Soal Uraian / Essai
+1. Jelaskan manfaat melakukan pemanasan sebelum olahraga!
+Jawaban: Pemanasan bermanfaat untuk menyiapkan otot, meningkatkan suhu tubuh, serta mencegah risiko cedera saat berolahraga.`;
+      showToast('Contoh soal berhasil dimuat!', 'success');
+    });
+
+    // Tab Switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('active', 'border-blue-600', 'text-blue-600', 'font-semibold');
+          b.classList.add('border-transparent', 'text-slate-500');
+        });
+        btn.classList.add('active', 'border-blue-600', 'text-blue-600', 'font-semibold');
+        btn.classList.remove('border-transparent', 'text-slate-500');
+
+        const target = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById(target).classList.remove('hidden');
+      });
+    });
+
+    async function callGeminiAPI(promptText, imageList = []) {
+      const systemInstruction = `Kamu adalah pakar pengolah dan pemformat soal ujian sekolah/kuliah terkemuka.
+SANGAT PENTING & MUTLAK: Kamu HARUS menganalisis DAN MENGONVERSI SELURUH SOAL tanpa terkecuali dari awal sampai nomor terakhir dalam dokumen/gambar. DILARANG KERAS melompati, meringkas, atau memotong nomor soal!
+
+Aturan Kategori Jenis Soal:
+- Jenis 1: PG Biasa (hanya 1 jawaban benar).
+- Jenis 2: PG Kompleks / True-False / Pilihan ganda banyak jawaban benar.
+- Jenis 3: Soal Menjodohkan (Memiliki Baris, Kolom, dan Pasangan Kunci).
+- Jenis 4: Isian Singkat.
+- Jenis 5: Uraian / Essai.
+
+Aturan Output JSON yang Wajib Diikuti:
+- Kunci jawaban untuk PG (Jenis 1 & 2) diisi dengan string "v" (huruf v kecil) pada opsi yang benar, dan "" untuk opsi yang salah.
+- Nilai keluaran HANYA berformat JSON Array Murni tanpa bungkus markdown.
+
+Format JSON:
+[
+  {
+    "no": 1,
+    "jenis": 1,
+    "soal": "Teks soal PG...",
+    "opsi": [
+      {"label": "A", "teks": "Opsi A", "kunci": ""},
+      {"label": "B", "teks": "Opsi B", "kunci": "v"}
+    ]
+  },
+  {
+    "no": 1,
+    "jenis": 3,
+    "soal": "Jodohkanlah negara dan ibukotanya...",
+    "baris": [{"kode": "1", "nama": "Indonesia"}, {"kode": "2", "nama": "Jepang"}],
+    "kolom": [{"kode": "A", "nama": "Jakarta"}, {"kode": "B", "nama": "Tokyo"}],
+    "kunci_jodoh": [{"kode_baris": "1", "kode_kolom": "A"}, {"kode_baris": "2", "kode_kolom": "B"}]
+  },
+  {
+    "no": 1,
+    "jenis": 4,
+    "soal": "Ibu kota Indonesia adalah...",
+    "jawaban": "Jakarta"
+  }
+]`;
+
+      const parts = [];
+      if (promptText) parts.push({ text: promptText });
+      
+      if (imageList && imageList.length > 0) {
+        imageList.forEach((img, idx) => {
+          parts.push({ text: `--- Gambar Lembar Soal Halaman ${idx + 1} ---` });
+          parts.push({
+            inlineData: {
+              mimeType: img.mimeType,
+              data: img.base64
+            }
+          });
+        });
+        if (!promptText) parts.push({ text: "Analisis seluruh gambar lembar soal ini dan ubah semua nomor soal menjadi format JSON terstruktur lengkap tanpa ada yang terlewat." });
+      }
+
+      const payload = {
+        contents: [{ role: "user", parts }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 8192
+        }
+      };
+
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+      const delays = [1000, 2000, 4000, 8000];
+      for (let attempt = 0; attempt < delays.length; attempt++) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!jsonText) throw new Error("Respon kosong dari AI");
+          return JSON.parse(jsonText);
+        } catch (err) {
+          if (attempt === delays.length - 1) throw err;
+          await new Promise(r => setTimeout(r, delays[attempt]));
+        }
+      }
+    }
+
+    btnConvert.addEventListener('click', async () => {
+      const rawText = rawTextInput.value.trim();
+      
+      if (!rawText && uploadedFileDataList.length === 0) {
+        showToast('Masukkan teks soal atau unggah file PDF / Gambar terlebih dahulu!', 'error');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      editorContainer.classList.add('hidden');
+      loadingState.classList.remove('hidden');
+      loadingMsg.textContent = "Menganalisis dan Memformat SEMUA Soal dengan AI...";
+
+      try {
+        const resultJSON = await callGeminiAPI(rawText, uploadedFileDataList);
+        parsedQuestions = Array.isArray(resultJSON) ? resultJSON : [];
+        if (parsedQuestions.length === 0) throw new Error("Hasil analisis AI kosong.");
+        renderAllQuestions();
+        showToast(`Berhasil memproses SELURUH ${parsedQuestions.length} soal!`, 'success');
+      } catch (err) {
+        console.warn("Gemini API Error / Fallback Digunakan:", err);
+        // Fallback Client-side Local Parser
+        parsedQuestions = parseTextLocally(rawText);
+        renderAllQuestions();
+        showToast(`Diproses dengan Parser Lokal (${parsedQuestions.length} soal terdeteksi).`, 'info');
+      } finally {
+        loadingState.classList.add('hidden');
+        editorContainer.classList.remove('hidden');
+        btnExportDocx.disabled = parsedQuestions.length === 0;
+        btnExportCsv.disabled = parsedQuestions.length === 0;
+      }
+    });
+
+    // Local Regex Fallback Parser
+    function parseTextLocally(text) {
+      if (!text) return [];
+      const questions = [];
+      const blocks = text.split(/\n(?=\d+[\.\)]\s*)/g);
+      let count = 1;
+
+      blocks.forEach(b => {
+        const lines = b.trim().split('\n').map(l => l.trim()).filter(Boolean);
+        if (!lines.length) return;
+
+        const firstLine = lines[0].replace(/^\d+[\.\)]\s*/, '');
+        const optionLines = lines.filter(l => /^[A-E][\.\)]/i.test(l));
+
+        if (optionLines.length > 0) {
+          const opsi = [];
+          lines.forEach(l => {
+            const match = l.match(/^([A-E])[\.\)]\s*(.*)/i);
+            if (match) {
+              const isKey = l.toLowerCase().includes('(kunci)') || l.toLowerCase().includes('jawaban:');
+              opsi.push({
+                label: match[1].toUpperCase(),
+                teks: match[2].replace(/\(Kunci\)/i, '').trim(),
+                kunci: isKey ? 'v' : ''
+              });
+            }
+          });
+          const keyCount = opsi.filter(o => o.kunci === 'v').length;
+          questions.push({
+            no: count++,
+            jenis: keyCount > 1 ? 2 : 1,
+            soal: firstLine,
+            opsi
+          });
+        } else {
+          questions.push({
+            no: count++,
+            jenis: 5,
+            soal: firstLine,
+            jawaban: lines.slice(1).join(' ')
+          });
+        }
+      });
+      return questions;
+    }
+
+    function renderAllQuestions() {
+      const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      
+      const listPg1 = document.getElementById('list-pg1');
+      const listPg2 = document.getElementById('list-pg2');
+      const listJodoh = document.getElementById('list-jodoh');
+      const listIsian = document.getElementById('list-isian');
+      const listUrai = document.getElementById('list-urai');
+
+      listPg1.innerHTML = '';
+      listPg2.innerHTML = '';
+      listJodoh.innerHTML = '';
+      listIsian.innerHTML = '';
+      listUrai.innerHTML = '';
+
+      parsedQuestions.forEach((q, idx) => {
+        counts[q.jenis] = (counts[q.jenis] || 0) + 1;
+
+        if (q.jenis === 1) listPg1.appendChild(createPGCard(q, idx, false));
+        else if (q.jenis === 2) listPg2.appendChild(createPGCard(q, idx, true));
+        else if (q.jenis === 3) listJodoh.appendChild(createJodohCard(q, idx));
+        else if (q.jenis === 4 || q.jenis === 5) {
+          const target = q.jenis === 4 ? listIsian : listUrai;
+          target.appendChild(createEssayCard(q, idx));
+        }
+      });
+
+      document.getElementById('stat-total').textContent = parsedQuestions.length;
+      document.getElementById('count-pg1').textContent = counts[1];
+      document.getElementById('count-pg2').textContent = counts[2];
+      document.getElementById('count-jodoh').textContent = counts[3];
+      document.getElementById('count-isian').textContent = counts[4];
+      document.getElementById('count-urai').textContent = counts[5];
+    }
+
+    // Component: Card Option PG
+    function createPGCard(q, idx, isComplex) {
+      const div = document.createElement('div');
+      div.className = 'p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 relative group';
+
+      let optionsHTML = '';
+      (q.opsi || []).forEach((opt, oIdx) => {
+        optionsHTML += `
+          <div class="flex items-center gap-2 text-xs">
+            <span class="font-bold text-slate-600 w-5">${opt.label}.</span>
+            <input type="text" value="${escapeHtml(opt.teks || '')}" onchange="updateOpsiTeks(${idx}, ${oIdx}, this.value)" class="flex-1 p-1.5 border border-slate-300 rounded bg-white text-slate-800">
+            <label class="flex items-center gap-1 bg-white px-2 py-1 border border-slate-200 rounded cursor-pointer select-none">
+              <input type="${isComplex ? 'checkbox' : 'radio'}" name="key-${idx}" ${opt.kunci === 'v' ? 'checked' : ''} onchange="toggleKey(${idx}, ${oIdx}, this.checked, ${isComplex})" class="text-blue-600">
+              <span class="${opt.kunci === 'v' ? 'text-emerald-600 font-bold' : 'text-slate-400'}">Kunci (v)</span>
+            </label>
+          </div>
+        `;
+      });
+
+      div.innerHTML = `
+        <div class="flex justify-between items-start gap-2">
+          <div class="flex items-center gap-2 flex-1">
+            <span class="bg-blue-600 text-white font-bold text-xs px-2 py-1 rounded">No ${q.no}</span>
+            <input type="text" value="${escapeHtml(q.soal || '')}" onchange="updateSoalText(${idx}, this.value)" class="flex-1 font-semibold text-xs p-1.5 border border-slate-300 rounded bg-white">
+          </div>
+          <button onclick="deleteQuestion(${idx})" class="text-slate-400 hover:text-rose-600 text-xs p-1"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <div class="space-y-2 pt-2 border-t border-slate-200">
+          ${optionsHTML}
+        </div>
+      `;
+      return div;
+    }
+
+    // Component: Card Menjodohkan
+    function createJodohCard(q, idx) {
+      const div = document.createElement('div');
+      div.className = 'p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3';
+
+      let barisHTML = (q.baris || []).map((b, bIdx) => `
+        <div class="flex gap-2 items-center text-xs">
+          <span class="font-bold w-6">${b.kode}</span>
+          <input type="text" value="${escapeHtml(b.nama || '')}" onchange="updateBarisText(${idx}, ${bIdx}, this.value)" class="flex-1 p-1 border rounded bg-white">
+        </div>
+      `).join('');
+
+      let kolomHTML = (q.kolom || []).map((k, kIdx) => `
+        <div class="flex gap-2 items-center text-xs">
+          <span class="font-bold w-6">${k.kode}</span>
+          <input type="text" value="${escapeHtml(k.nama || '')}" onchange="updateKolomText(${idx}, ${kIdx}, this.value)" class="flex-1 p-1 border rounded bg-white">
+        </div>
+      `).join('');
+
+      div.innerHTML = `
+        <div class="flex justify-between items-center">
+          <span class="bg-indigo-600 text-white font-bold text-xs px-2 py-1 rounded">No ${q.no} (Menjodohkan)</span>
+          <button onclick="deleteQuestion(${idx})" class="text-slate-400 hover:text-rose-600 text-xs"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <input type="text" value="${escapeHtml(q.soal || '')}" onchange="updateSoalText(${idx}, this.value)" class="w-full font-semibold text-xs p-1.5 border border-slate-300 rounded bg-white">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div class="space-y-1">
+            <span class="text-[11px] font-bold text-slate-500">NAMA BARIS (KODE 1, 2, 3...)</span>
+            ${barisHTML}
+          </div>
+          <div class="space-y-1">
+            <span class="text-[11px] font-bold text-slate-500">NAMA KOLOM (KODE A, B, C...)</span>
+            ${kolomHTML}
+          </div>
+        </div>
+      `;
+      return div;
+    }
+
+    // Component: Card Essay & Isian
+    function createEssayCard(q, idx) {
+      const div = document.createElement('div');
+      div.className = 'p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2';
+      div.innerHTML = `
+        <div class="flex justify-between items-center">
+          <span class="bg-slate-700 text-white font-bold text-xs px-2 py-1 rounded">No ${q.no} (${q.jenis === 4 ? 'Isian' : 'Essai'})</span>
+          <button onclick="deleteQuestion(${idx})" class="text-slate-400 hover:text-rose-600 text-xs"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <textarea onchange="updateSoalText(${idx}, this.value)" class="w-full font-semibold text-xs p-2 border border-slate-300 rounded bg-white" rows="2">${escapeHtml(q.soal || '')}</textarea>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-500">Kunci Jawaban:</span>
+          <input type="text" value="${escapeHtml(q.jawaban || '')}" onchange="updateJawabanText(${idx}, this.value)" class="flex-1 text-xs p-1.5 border border-slate-300 rounded bg-white">
+        </div>
+      `;
+      return div;
+    }
+
+    // State Mutation Functions
+    function updateSoalText(idx, val) { parsedQuestions[idx].soal = val; }
+    function updateOpsiTeks(idx, oIdx, val) { parsedQuestions[idx].opsi[oIdx].teks = val; }
+    function updateBarisText(idx, bIdx, val) { parsedQuestions[idx].baris[bIdx].nama = val; }
+    function updateKolomText(idx, kIdx, val) { parsedQuestions[idx].kolom[kIdx].nama = val; }
+    function updateJawabanText(idx, val) { parsedQuestions[idx].jawaban = val; }
+    
+    function toggleKey(idx, oIdx, checked, isComplex) {
+      if (!isComplex) {
+        parsedQuestions[idx].opsi.forEach((o, i) => o.kunci = i === oIdx ? 'v' : '');
+      } else {
+        parsedQuestions[idx].opsi[oIdx].kunci = checked ? 'v' : '';
+      }
+      renderAllQuestions();
+    }
+
+    function deleteQuestion(idx) {
+      parsedQuestions.splice(idx, 1);
+      renderAllQuestions();
+      showToast('Soal dihapus', 'info');
+    }
+
+    function addNewQuestion(jenis) {
+      const nextNo = parsedQuestions.filter(q => q.jenis === jenis).length + 1;
+      const newQ = { no: nextNo, jenis, soal: 'Soal Baru', opsi: [] };
+      if (jenis === 1 || jenis === 2) {
+        newQ.opsi = [
+          { label: 'A', teks: 'Pilihan A', kunci: 'v' },
+          { label: 'B', teks: 'Pilihan B', kunci: '' },
+          { label: 'C', teks: 'Pilihan C', kunci: '' },
+          { label: 'D', teks: 'Pilihan D', kunci: '' }
+        ];
+      } else if (jenis === 3) {
+        newQ.baris = [{ kode: '1', nama: 'Baris 1' }, { kode: '2', nama: 'Baris 2' }];
+        newQ.kolom = [{ kode: 'A', nama: 'Kolom A' }, { kode: 'B', nama: 'Kolom B' }];
+        newQ.kunci_jodoh = [{ kode_baris: '1', kode_kolom: 'A' }, { kode_baris: '2', kode_kolom: 'B' }];
+      } else if (jenis === 4 || jenis === 5) {
+        newQ.jawaban = 'Jawaban Baru';
+      }
+      parsedQuestions.push(newQ);
+      renderAllQuestions();
+      showToast('Soal baru berhasil ditambahkan!', 'success');
+    }
+
+    btnExportDocx.addEventListener('click', () => {
+      if (!parsedQuestions.length) return;
+
+      const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType } = docx;
+
+      const createHeaderCell = (text) => new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text, bold: true, size: 20 })] })],
+        shading: { fill: "F1F5F9" }
+      });
+
+      const createCell = (text) => new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text: String(text || ''), size: 20 })] })]
+      });
+
+      const children = [];
+
+      // Process PG 1
+      const pg1List = parsedQuestions.filter(q => q.jenis === 1);
+      if (pg1List.length) {
+        children.push(new Paragraph({ children: [new TextRun({ text: "I. Soal Pilihan Ganda (satu jawaban benar)", bold: true, size: 24 })] }));
+        children.push(new Paragraph({ text: "" }));
+        const rows = [
+          new TableRow({ children: ["NO", "SOAL", "JENIS", "OPSI", "JAWABAN", "KUNCI"].map(createHeaderCell) })
+        ];
+        pg1List.forEach(q => {
+          (q.opsi || []).forEach((opt, idx) => {
+            rows.push(new TableRow({
+              children: [
+                createCell(idx === 0 ? q.no : ""),
+                createCell(idx === 0 ? q.soal : ""),
+                createCell(idx === 0 ? "1" : ""),
+                createCell(opt.label),
+                createCell(opt.teks),
+                createCell(opt.kunci)
+              ]
+            }));
+          });
+        });
+        children.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }));
+      }
+
+      // Process PG 2
+      const pg2List = parsedQuestions.filter(q => q.jenis === 2);
+      if (pg2List.length) {
+        children.push(new Paragraph({ text: "" }));
+        children.push(new Paragraph({ children: [new TextRun({ text: "II. Soal Pilihan Ganda Kompleks (beberapa jawaban benar)", bold: true, size: 24 })] }));
+        children.push(new Paragraph({ text: "" }));
+        const rows = [
+          new TableRow({ children: ["NO", "SOAL", "JENIS", "OPSI", "JAWABAN", "KUNCI"].map(createHeaderCell) })
+        ];
+        pg2List.forEach(q => {
+          (q.opsi || []).forEach((opt, idx) => {
+            rows.push(new TableRow({
+              children: [
+                createCell(idx === 0 ? q.no : ""),
+                createCell(idx === 0 ? q.soal : ""),
+                createCell(idx === 0 ? "2" : ""),
+                createCell(opt.label),
+                createCell(opt.teks),
+                createCell(opt.kunci)
+              ]
+            }));
+          });
+        });
+        children.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }));
+      }
+
+      // Process Menjodohkan (Jenis 3)
+      const jodohList = parsedQuestions.filter(q => q.jenis === 3);
+      if (jodohList.length) {
+        children.push(new Paragraph({ text: "" }));
+        children.push(new Paragraph({ children: [new TextRun({ text: "III. Soal Menjodohkan", bold: true, size: 24 })] }));
+        children.push(new Paragraph({ text: "" }));
+        const rows = [
+          new TableRow({ children: ["NO", "SOAL", "JENIS", "KODE BARIS", "NAMA BARIS", "KODE KOLOM", "NAMA KOLOM", "PASANGAN KUNCI"].map(createHeaderCell) })
+        ];
+        jodohList.forEach(q => {
+          const maxRows = Math.max((q.baris || []).length, (q.kolom || []).length, 1);
+          const kunciStr = (q.kunci_jodoh || []).map(k => `${k.kode_baris}-${k.kode_kolom}`).join(', ');
+
+          for (let r = 0; r < maxRows; r++) {
+            const b = q.baris?.[r] || {};
+            const k = q.kolom?.[r] || {};
+            rows.push(new TableRow({
+              children: [
+                createCell(r === 0 ? q.no : ""),
+                createCell(r === 0 ? q.soal : ""),
+                createCell(r === 0 ? "3" : ""),
+                createCell(b.kode || ""),
+                createCell(b.nama || ""),
+                createCell(k.kode || ""),
+                createCell(k.nama || ""),
+                createCell(r === 0 ? kunciStr : "")
+              ]
+            }));
+          }
+        });
+        children.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }));
+      }
+
+      // Process Essay & Isian (Jenis 4 & 5)
+      [4, 5].forEach(jNum => {
+        const subList = parsedQuestions.filter(q => q.jenis === jNum);
+        if (subList.length) {
+          children.push(new Paragraph({ text: "" }));
+          children.push(new Paragraph({ children: [new TextRun({ text: jNum === 4 ? "IV. Soal Isian Singkat" : "V. Soal Uraian / Essai", bold: true, size: 24 })] }));
+          children.push(new Paragraph({ text: "" }));
+          const rows = [
+            new TableRow({ children: ["NO", "SOAL", "JENIS", "JAWABAN"].map(createHeaderCell) })
+          ];
+          subList.forEach(q => {
+            rows.push(new TableRow({
+              children: [
+                createCell(q.no),
+                createCell(q.soal),
+                createCell(String(jNum)),
+                createCell(q.jawaban || "")
+              ]
+            }));
+          });
+          children.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }));
+        }
+      });
+
+      const doc = new Document({
+        sections: [{ properties: {}, children }]
+      });
+
+      Packer.toBlob(doc).then(blob => {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Hasil_Konversi_Soal_Terformat.docx";
+        link.click();
+        showToast("File Word (.docx) berhasil diunduh!", "success");
+      });
+    });
+
+    // Export CSV
+    btnExportCsv.addEventListener('click', () => {
+      let csvContent = "data:text/csv;charset=utf-8,NO,SOAL,JENIS,OPSI,JAWABAN,KUNCI\n";
+      parsedQuestions.forEach(q => {
+        if (q.jenis === 1 || q.jenis === 2) {
+          (q.opsi || []).forEach((opt, idx) => {
+            const noVal = idx === 0 ? q.no : "";
+            const soalVal = idx === 0 ? `"${q.soal.replace(/"/g, '""')}"` : "";
+            csvContent += `${noVal},${soalVal},${q.jenis},${opt.label},"${(opt.teks||'').replace(/"/g, '""')}",${opt.kunci}\n`;
+          });
+        } else if (q.jenis === 4 || q.jenis === 5) {
+          const soalVal = `"${q.soal.replace(/"/g, '""')}"`;
+          const jawabVal = `"${(q.jawaban||'').replace(/"/g, '""')}"`;
+          csvContent += `${q.no},${soalVal},${q.jenis},,,${jawabVal}\n`;
+        }
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "Export_Soal.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("File CSV berhasil diunduh!", "success");
+    });
+
+    // Helper Toast Notification
+    function showToast(msg, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-msg');
+      const toastIcon = document.getElementById('toast-icon');
+
+      toastMsg.textContent = msg;
+      if (type === 'success') toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-base";
+      else if (type === 'error') toastIcon.className = "fa-solid fa-circle-xmark text-rose-400 text-base";
+      else toastIcon.className = "fa-solid fa-circle-info text-blue-400 text-base";
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
